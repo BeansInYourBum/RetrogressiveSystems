@@ -86,7 +86,7 @@
 		},
 		{
 			"label": "Build Empty Example (Debug)",
-			"detail": "Builds the test game in debug mode",
+			"detail": "Builds the empty example in debug mode",
 			"group": "build",
 			"icon": {
 				"id": "library",
@@ -101,7 +101,7 @@
 					"Set-Location $build\n",
 					"cl /nologo /std:c17 /fp:precise /O1s /GAy /Z7 /MDd /DEBUG /I ${workspaceFolder}/Include",
 						"${workspaceFolder}/Examples/Empty/Empty.c",
-							"/link /nologo /debug /opt:ref /subsystem:console /out:Test.exe",
+							"/link /nologo /debug /opt:ref /subsystem:console /out:Empty.exe",
 								"${workspaceFolder}/Library/${workspaceFolderBasename}-Windows-Debug.lib",
 								"User32.lib", "GDI32.lib", "Ole32.lib"
 				]
@@ -109,7 +109,7 @@
 		},
 		{
 			"label": "Build Empty Example (Release)",
-			"detail": "Builds the test game in release mode",
+			"detail": "Builds the empty example in release mode",
 			"group": "build",
 			"icon": {
 				"id": "library",
@@ -124,7 +124,53 @@
 					"Set-Location $build\n",
 					"cl /nologo /std:c17 /fp:precise /O1s /GAy /Z7 /MD /I ${workspaceFolder}/Include",
 						"${workspaceFolder}/Examples/Empty/Empty.c",
-							"/link /nologo /opt:ref /subsystem:windows /out:Test.exe",
+							"/link /nologo /opt:ref /subsystem:windows /out:Empty.exe",
+								"${workspaceFolder}/Library/${workspaceFolderBasename}-Windows.lib",
+								"User32.lib", "GDI32.lib", "Ole32.lib"
+				]
+			}
+		},
+		{
+			"label": "Build Graphics Example (Debug)",
+			"detail": "Builds the graphics example in debug mode",
+			"group": "build",
+			"icon": {
+				"id": "library",
+				"color": "terminal.ansiYellow"
+			},
+			"windows": {
+				"problemMatcher": "$msCompile",
+				"command": [
+					"$build = '${workspaceFolder}/Examples/Graphics/Binary'\n",
+					"if (!(Test-Path $build)) { New-Item $build -ItemType Directory -Force }\n",
+
+					"Set-Location $build\n",
+					"cl /nologo /std:c17 /fp:precise /O1s /GAy /Z7 /MDd /DEBUG /I ${workspaceFolder}/Include",
+						"${workspaceFolder}/Examples/Graphics/Graphics.c",
+							"/link /nologo /debug /opt:ref /subsystem:console /out:Graphics.exe",
+								"${workspaceFolder}/Library/${workspaceFolderBasename}-Windows-Debug.lib",
+								"User32.lib", "GDI32.lib", "Ole32.lib"
+				]
+			}
+		},
+		{
+			"label": "Build Graphics Example (Release)",
+			"detail": "Builds the graphics example in release mode",
+			"group": "build",
+			"icon": {
+				"id": "library",
+				"color": "terminal.ansiYellow"
+			},
+			"windows": {
+				"problemMatcher": "$msCompile",
+				"command": [
+					"$build = '${workspaceFolder}/Examples/Graphics/Binary'\n",
+					"if (!(Test-Path $build)) { New-Item $build -ItemType Directory -Force }\n",
+
+					"Set-Location $build\n",
+					"cl /nologo /std:c17 /fp:precise /O1s /GAy /Z7 /MD /I ${workspaceFolder}/Include",
+						"${workspaceFolder}/Examples/Graphics/Graphics.c",
+							"/link /nologo /opt:ref /subsystem:windows /out:Graphics.exe",
 								"${workspaceFolder}/Library/${workspaceFolderBasename}-Windows.lib",
 								"User32.lib", "GDI32.lib", "Ole32.lib"
 				]
