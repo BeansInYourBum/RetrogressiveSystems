@@ -235,7 +235,7 @@ void RGSDrawTiles1(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette
 			uint8_t sample_data = pattern_data[(tile_data.vflip ? (RGS_PATTERN_HEIGHT - 1) - sample_y : sample_y) * (RGS_PATTERN_WIDTH >> 3)];
 			sample_data = (sample_data >> (tile_data.hflip ? sample_x : (7U - sample_x))) & ((1U << 1U) - 1U); 
 			if (!in_transparent || sample_data) {
-				sample_data = in_palettes[tile_data.palette][sample_data];
+				sample_data = (in_palettes && in_palettes[tile_data.palette]) ? in_palettes[tile_data.palette][sample_data] : sample_data;
 				const size_t pixel_index = (size_t)((pixel_x >> 3) + (pixel_y * g_length));
 				g_pixels[pixel_index] = (g_pixels[pixel_index] & (uint8_t)(~(1 << (7 - (pixel_x & 7))))) | ((sample_data & (uint8_t)(g_colours - 1)) << (7 - (pixel_x & 7)));
 			};
@@ -283,7 +283,7 @@ void RGSDrawTiles4(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette
 			uint8_t sample_data = pattern_data[((tile_data.hflip ? (RGS_PATTERN_WIDTH - 1) - sample_x : sample_x) >> 1) + ((tile_data.vflip ? (RGS_PATTERN_HEIGHT - 1) - sample_y : sample_y) * (RGS_PATTERN_WIDTH >> 1))];
 			sample_data = (((sample_x + tile_data.hflip) & 1) ? sample_data : (sample_data >> 4U)) & ((1U << 4U) - 1U);
 			if (!in_transparent || sample_data) {
-				sample_data = in_palettes[tile_data.palette][sample_data];
+				sample_data = (in_palettes && in_palettes[tile_data.palette]) ? in_palettes[tile_data.palette][sample_data] : sample_data;
 				const size_t pixel_index = (size_t)((pixel_x >> 1) + (pixel_y * g_length));
 				if (pixel_x & 1) g_pixels[pixel_index] = (g_pixels[pixel_index] & 0b11110000U) | sample_data;
 				else g_pixels[pixel_index] = (g_pixels[pixel_index] & 0b00001111U) | (sample_data << 4U);
@@ -330,7 +330,7 @@ void RGSDrawTiles8(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette
 			const RGSTile tile_data = in_tiles[tile_x + (tile_y * ((g_cwidth + (RGS_PATTERN_WIDTH - 1)) >> 3))];
 			const uint8_t* pattern_data = g_patterns + ((RGS_PATTERN_WIDTH * RGS_PATTERN_HEIGHT) * (size_t)(tile_data.pattern & (RGS_PATTERN_COUNT - 1)));
 			const uint8_t sample_data = pattern_data[(tile_data.hflip ? (RGS_PATTERN_WIDTH - 1) - sample_x : sample_x) + ((tile_data.vflip ? (RGS_PATTERN_HEIGHT - 1) - sample_y : sample_y) * RGS_PATTERN_WIDTH)];
-			if (!in_transparent || sample_data) g_pixels[pixel_x + (pixel_y * g_length)] = in_palettes[tile_data.palette][sample_data];
+			if (!in_transparent || sample_data) g_pixels[pixel_x + (pixel_y * g_length)] = (in_palettes && in_palettes[tile_data.palette]) ? in_palettes[tile_data.palette][sample_data] : sample_data;
 		}
 		while (++layer_x < layer_x_end);
 	}
@@ -1081,7 +1081,7 @@ void RGSDrawSprite(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pale
 };
 
 void RGSDrawTiles(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette* in_palettes, bool in_hwrap, bool in_vwrap, bool in_transparent) {
-	if (!g_rendering || !in_tiles || !in_palettes) return;
+	if (!g_rendering || !in_tiles) return;
 	g_draw_tiles(in_x, in_y, in_tiles, in_palettes, in_hwrap, in_vwrap, in_transparent);
 };
 
