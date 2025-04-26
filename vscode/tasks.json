@@ -113,7 +113,7 @@
 			"group": "build",
 			"icon": {
 				"id": "library",
-				"color": "terminal.ansiYellow"
+				"color": "terminal.ansiGreen"
 			},
 			"windows": {
 				"problemMatcher": "$msCompile",
@@ -159,7 +159,7 @@
 			"group": "build",
 			"icon": {
 				"id": "library",
-				"color": "terminal.ansiYellow"
+				"color": "terminal.ansiGreen"
 			},
 			"windows": {
 				"problemMatcher": "$msCompile",
@@ -205,7 +205,7 @@
 			"group": "build",
 			"icon": {
 				"id": "library",
-				"color": "terminal.ansiYellow"
+				"color": "terminal.ansiGreen"
 			},
 			"windows": {
 				"problemMatcher": "$msCompile",
