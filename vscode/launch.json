@@ -1,0 +1,33 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Launch Empty Example",
+			"request": "launch",
+			"type": "cppvsdbg",
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"program": "${workspaceFolder}/Examples/Empty/Binary/Empty.exe",
+			"preLaunchTask": "Build Empty Example (Debug)"
+		},
+		{
+			"name": "Launch Graphics Example",
+			"request": "launch",
+			"type": "cppvsdbg",
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"program": "${workspaceFolder}/Examples/Graphics/Binary/Graphics.exe",
+			"preLaunchTask": "Build Graphics Example (Debug)"
+		},
+		{
+			"name": "Launch Audio Example",
+			"request": "launch",
+			"type": "cppvsdbg",
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"program": "${workspaceFolder}/Examples/Audio/Binary/Audio.exe",
+			"preLaunchTask": "Build Audio Example (Debug)"
+		}
+	]
+}
+
