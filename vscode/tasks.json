@@ -1,0 +1,135 @@
+{
+	"version": "2.0.0",
+	"type": "shell",
+	"tasks": [
+		{
+			"label": "Build Library (Debug)",
+			"detail": "Builds the library in debug mode",
+			"group": "build",
+			"icon": {
+				"id": "library",
+				"color": "terminal.ansiYellow"
+			},
+			"windows": {
+				"problemMatcher": "$msCompile",
+				"command": [
+					"$build = '${workspaceFolder}/Library'\n",
+					"if (!(Test-Path $build)) { New-Item $build -ItemType Directory -Force }\n",
+
+					"New-Item $build/Objects -ItemType Directory -Force\n",
+					"Set-Location $build/Objects\n",
+					"cl /c /nologo /std:c17 /fp:precise /O1s /GAy /Z7 /MDd /DEBUG /I ${workspaceFolder}/Include",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Types.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Threads.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Output.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Input.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Audio.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Graphics.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Game.c",
+						"\n",
+
+					"Set-Location $build\n",
+					"lib /nologo /out:${workspaceFolderBasename}-Windows-Debug.lib",
+						"$build/Objects/Types.obj",
+						"$build/Objects/Threads.obj",
+						"$build/Objects/Output.obj",
+						"$build/Objects/Input.obj",
+						"$build/Objects/Audio.obj",
+						"$build/Objects/Graphics.obj",
+						"$build/Objects/Game.obj",
+						"\n",
+
+					"Remove-Item $build/Objects -Recurse -Force"
+				]
+			}
+		},
+		{
+			"label": "Build Library (Release)",
+			"detail": "Builds the library in release mode",
+			"group": "build",
+			"icon": {
+				"id": "library",
+				"color": "terminal.ansiGreen"
+			},
+			"windows": {
+				"problemMatcher": "$msCompile",
+				"command": [
+					"$build = '${workspaceFolder}/Library'\n",
+					"if (!(Test-Path $build)) { New-Item $build -ItemType Directory -Force }\n",
+
+					"New-Item $build/Objects -ItemType Directory -Force\n",
+					"Set-Location $build/Objects\n",
+					"cl /c /nologo /std:c17 /fp:precise /O1s /GAy /Z7 /MD /I ${workspaceFolder}/Include",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Types.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Threads.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Output.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Input.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Audio.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Graphics.c",
+						"${workspaceFolder}/Source/${workspaceFolderBasename}/Game.c",
+						"\n",
+
+					"Set-Location $build\n",
+					"lib /nologo /out:${workspaceFolderBasename}-Windows.lib",
+						"$build/Objects/Types.obj",
+						"$build/Objects/Threads.obj",
+						"$build/Objects/Output.obj",
+						"$build/Objects/Input.obj",
+						"$build/Objects/Audio.obj",
+						"$build/Objects/Graphics.obj",
+						"$build/Objects/Game.obj",
+						"\n",
+
+					"Remove-Item $build/Objects -Recurse -Force"
+				]
+			}
+		},
+		{
+			"label": "Build Empty Example (Debug)",
+			"detail": "Builds the test game in debug mode",
+			"group": "build",
+			"icon": {
+				"id": "library",
+				"color": "terminal.ansiYellow"
+			},
+			"windows": {
+				"problemMatcher": "$msCompile",
+				"command": [
+					"$build = '${workspaceFolder}/Examples/Empty/Binary'\n",
+					"if (!(Test-Path $build)) { New-Item $build -ItemType Directory -Force }\n",
+
+					"Set-Location $build\n",
+					"cl /nologo /std:c17 /fp:precise /O1s /GAy /Z7 /MDd /DEBUG /I ${workspaceFolder}/Include",
+						"${workspaceFolder}/Examples/Empty/Empty.c",
+							"/link /nologo /debug /opt:ref /subsystem:console /out:Test.exe",
+								"${workspaceFolder}/Library/${workspaceFolderBasename}-Windows-Debug.lib",
+								"User32.lib", "GDI32.lib", "Ole32.lib"
+				]
+			}
+		},
+		{
+			"label": "Build Empty Example (Release)",
+			"detail": "Builds the test game in release mode",
+			"group": "build",
+			"icon": {
+				"id": "library",
+				"color": "terminal.ansiYellow"
+			},
+			"windows": {
+				"problemMatcher": "$msCompile",
+				"command": [
+					"$build = '${workspaceFolder}/Examples/Empty/Binary'\n",
+					"if (!(Test-Path $build)) { New-Item $build -ItemType Directory -Force }\n",
+
+					"Set-Location $build\n",
+					"cl /nologo /std:c17 /fp:precise /O1s /GAy /Z7 /MD /I ${workspaceFolder}/Include",
+						"${workspaceFolder}/Examples/Empty/Empty.c",
+							"/link /nologo /opt:ref /subsystem:windows /out:Test.exe",
+								"${workspaceFolder}/Library/${workspaceFolderBasename}-Windows.lib",
+								"User32.lib", "GDI32.lib", "Ole32.lib"
+				]
+			}
+		}
+	]
+}
+
