@@ -1,7 +1,7 @@
 #include <RetrogressiveSystems/RetrogressiveSystems.h>
 
 
-void RGSConfigure(RGSGameInfo* in_game, RGSAudioInfo* in_audio, RGSGraphicsInfo* in_graphics) { };
+void RGSConfigure(RGSGameInfo* inout_game, RGSAudioInfo* inout_audio, RGSGraphicsInfo* inout_graphics) { };
 
 void RGSBegin() { };
 

@@ -12,13 +12,13 @@
 static RGSTile tilemap[TILEMAP_WIDTH * TILEMAP_HEIGHT];
 
 
-void RGSConfigure(RGSGameInfo* in_game, RGSAudioInfo* in_audio, RGSGraphicsInfo* in_graphics) {
-	in_graphics->window_title = "Graphics Example";
-	in_graphics->screen_width = SCREEN_WIDTH;
-	in_graphics->screen_height = SCREEN_HEIGHT;
-	in_graphics->canvas_width = CANVAS_WIDTH;
-	in_graphics->canvas_height = CANVAS_HEIGHT;
-	in_graphics->bits_per_pixel = 2U;
+void RGSConfigure(RGSGameInfo* inout_game, RGSAudioInfo* inout_audio, RGSGraphicsInfo* inout_graphics) {
+	inout_graphics->window_title = "Graphics Example";
+	inout_graphics->screen_width = SCREEN_WIDTH;
+	inout_graphics->screen_height = SCREEN_HEIGHT;
+	inout_graphics->canvas_width = CANVAS_WIDTH;
+	inout_graphics->canvas_height = CANVAS_HEIGHT;
+	inout_graphics->bits_per_pixel = 2U;
 };
 
 void RGSBegin() {
