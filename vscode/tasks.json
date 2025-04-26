@@ -175,6 +175,52 @@
 								"User32.lib", "GDI32.lib", "Ole32.lib"
 				]
 			}
+		},
+		{
+			"label": "Build Audio Example (Debug)",
+			"detail": "Builds the audio example in debug mode",
+			"group": "build",
+			"icon": {
+				"id": "library",
+				"color": "terminal.ansiYellow"
+			},
+			"windows": {
+				"problemMatcher": "$msCompile",
+				"command": [
+					"$build = '${workspaceFolder}/Examples/Audio/Binary'\n",
+					"if (!(Test-Path $build)) { New-Item $build -ItemType Directory -Force }\n",
+
+					"Set-Location $build\n",
+					"cl /nologo /std:c17 /fp:precise /O1s /GAy /Z7 /MDd /DEBUG /I ${workspaceFolder}/Include",
+						"${workspaceFolder}/Examples/Audio/Audio.c",
+							"/link /nologo /debug /opt:ref /subsystem:console /out:Audio.exe",
+								"${workspaceFolder}/Library/${workspaceFolderBasename}-Windows-Debug.lib",
+								"User32.lib", "GDI32.lib", "Ole32.lib"
+				]
+			}
+		},
+		{
+			"label": "Build Audio Example (Release)",
+			"detail": "Builds the audio example in release mode",
+			"group": "build",
+			"icon": {
+				"id": "library",
+				"color": "terminal.ansiYellow"
+			},
+			"windows": {
+				"problemMatcher": "$msCompile",
+				"command": [
+					"$build = '${workspaceFolder}/Examples/Audio/Binary'\n",
+					"if (!(Test-Path $build)) { New-Item $build -ItemType Directory -Force }\n",
+
+					"Set-Location $build\n",
+					"cl /nologo /std:c17 /fp:precise /O1s /GAy /Z7 /MD /I ${workspaceFolder}/Include",
+						"${workspaceFolder}/Examples/Audio/Audio.c",
+							"/link /nologo /opt:ref /subsystem:windows /out:Audio.exe",
+								"${workspaceFolder}/Library/${workspaceFolderBasename}-Windows.lib",
+								"User32.lib", "GDI32.lib", "Ole32.lib"
+				]
+			}
 		}
 	]
 }
