@@ -64,10 +64,14 @@ void RGSEnd() { };
 void RGSUpdate(RGSTime in_elapsed) { };
 
 void RGSRender() {
+	const RGSPalette1 palette_tl = { 0, 0 };
+	const RGSPalette1 palette_tr = { 0, 1 };
+	const RGSPalette1 palette_bl = { 0, 2 };
+	const RGSPalette1 palette_br = { 0, 3 };
 	RGSDrawTiles(0, 0, tilemap, RGS_NULL, false, false, false);
-	RGSDrawSprite(16, 16, 2U, RGS_NULL, false, false, false, false);
-	RGSDrawSprite(16 + RGS_PATTERN_WIDTH, 16, 2U, RGS_NULL, true, false, false, false);
-	RGSDrawSprite(16, 16 + RGS_PATTERN_HEIGHT, 2U, RGS_NULL, false, true, false, false);
-	RGSDrawSprite(16 + RGS_PATTERN_WIDTH, 16 + RGS_PATTERN_HEIGHT, 2U, RGS_NULL, true, true, false, false);
+	RGSDrawSprite(16, 16, 2U, palette_tl, false, false, false, false);
+	RGSDrawSprite(16 + RGS_PATTERN_WIDTH, 16, 2U, palette_tr, true, false, false, false);
+	RGSDrawSprite(16, 16 + RGS_PATTERN_HEIGHT, 2U, palette_bl, false, true, false, false);
+	RGSDrawSprite(16 + RGS_PATTERN_WIDTH, 16 + RGS_PATTERN_HEIGHT, 2U, palette_br, true, true, false, false);
 };
 
