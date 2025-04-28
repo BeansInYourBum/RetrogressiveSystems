@@ -33,8 +33,11 @@ static int g_swidth = 0;
 static int g_sheight = 0;
 static int g_cwidth = 0;
 static int g_cheight = 0;
+static int g_pwidth = 0;
+static int g_pheight = 0;
 
-static uint8_t* g_patterns = RGS_NULL;
+static int g_pcount = 0;
+static uint8_t* g_pdata = RGS_NULL;
 static volatile bool g_modifying = false;
 
 static int g_bits = 0;
@@ -98,8 +101,8 @@ void RGSSetPixel8(int in_x, int in_y, uint8_t in_index) { g_pixels[in_x + (in_y 
 void RGSDrawSprite1(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_palette, bool in_hflip, bool in_vflip, bool in_hwrap, bool in_vwrap) {
 	if (in_hwrap) in_x = in_x >= 0 ? (in_x % g_cwidth) : (g_cwidth + (in_x % g_cwidth));
 	if (in_vwrap) in_y = in_y >= 0 ? (in_y % g_cheight) : (g_cheight + (in_y % g_cheight));
-	const uint8_t* pattern_data = g_patterns + (((RGS_PATTERN_WIDTH >> 3) * RGS_PATTERN_HEIGHT) * (size_t)(in_pattern & (RGS_PATTERN_COUNT - 1)));
-	for (int sample_y = 0; sample_y < RGS_PATTERN_HEIGHT; sample_y++) {
+	const uint8_t* pattern_data = g_pdata + (((g_pwidth >> 3) * g_pheight) * (size_t)(in_pattern % g_pcount));
+	for (int sample_y = 0; sample_y < g_pheight; sample_y++) {
 		int pixel_y = in_y + sample_y;
 		if (in_vwrap) {
 			if (pixel_y >= g_cheight) pixel_y %= g_cheight;
@@ -109,7 +112,7 @@ void RGSDrawSprite1(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pal
 			if (pixel_y < 0) continue;
 			else if (pixel_y >= g_sheight) break;
 		};
-		for (int sample_x = 0; sample_x < RGS_PATTERN_WIDTH; sample_x++) {
+		for (int sample_x = 0; sample_x < g_pwidth; sample_x++) {
 			int pixel_x = in_x + sample_x;
 			if (in_hwrap) {
 				if (pixel_x >= g_cwidth) pixel_x %= g_cwidth;
@@ -119,8 +122,8 @@ void RGSDrawSprite1(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pal
 				if (pixel_x < 0) continue;
 				else if (pixel_x >= g_swidth) break;
 			};
-			uint8_t sample_data = pattern_data[(in_vflip ? (RGS_PATTERN_HEIGHT - 1) - sample_y : sample_y) * (RGS_PATTERN_WIDTH >> 3)];
-			sample_data = (sample_data >> (in_hflip ? sample_x : (7U - sample_x))) & ((1U << 1U) - 1U); 
+			uint8_t sample_data = pattern_data[((in_hflip ? (g_pwidth - 1) - sample_x : sample_x) >> 3) + ((in_vflip ? (g_pheight - 1) - sample_y : sample_y) * (g_pwidth >> 3))];
+			sample_data = (sample_data >> (in_hflip ? (sample_x & 7) : (7U - (sample_x & 7)))) & ((1U << 1U) - 1U); 
 			if (sample_data) {
 				sample_data = in_palette ? in_palette[sample_data] : sample_data;
 				const size_t pixel_index = (size_t)((pixel_x >> 3) + (pixel_y * g_length));
@@ -133,8 +136,8 @@ void RGSDrawSprite1(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pal
 void RGSDrawSprite4(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_palette, bool in_hflip, bool in_vflip, bool in_hwrap, bool in_vwrap) {
 	if (in_hwrap) in_x = in_x >= 0 ? (in_x % g_cwidth) : (g_cwidth + (in_x % g_cwidth));
 	if (in_vwrap) in_y = in_y >= 0 ? (in_y % g_cheight) : (g_cheight + (in_y % g_cheight));
-	const uint8_t* pattern_data = g_patterns + (((RGS_PATTERN_WIDTH >> 1) * RGS_PATTERN_HEIGHT) * (size_t)(in_pattern & (RGS_PATTERN_COUNT - 1)));
-	for (int sample_y = 0; sample_y < RGS_PATTERN_HEIGHT; sample_y++) {
+	const uint8_t* pattern_data = g_pdata + (((g_pwidth >> 1) * g_pheight) * (size_t)(in_pattern % g_pcount));
+	for (int sample_y = 0; sample_y < g_pheight; sample_y++) {
 		int pixel_y = in_y + sample_y;
 		if (in_vwrap) {
 			if (pixel_y >= g_cheight) pixel_y %= g_cheight;
@@ -144,7 +147,7 @@ void RGSDrawSprite4(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pal
 			if (pixel_y < 0) continue;
 			else if (pixel_y >= g_sheight) break;
 		};
-		for (int sample_x = 0; sample_x < RGS_PATTERN_WIDTH; sample_x++) {
+		for (int sample_x = 0; sample_x < g_pwidth; sample_x++) {
 			int pixel_x = in_x + sample_x;
 			if (in_hwrap) {
 				if (pixel_x >= g_cwidth) pixel_x %= g_cwidth;
@@ -154,7 +157,7 @@ void RGSDrawSprite4(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pal
 				if (pixel_x < 0) continue;
 				else if (pixel_x >= g_swidth) break;
 			};
-			uint8_t sample_data = pattern_data[((in_hflip ? (RGS_PATTERN_WIDTH - 1) - sample_x : sample_x) >> 1) + ((in_vflip ? (RGS_PATTERN_HEIGHT - 1) - sample_y : sample_y) * (RGS_PATTERN_WIDTH >> 1))];
+			uint8_t sample_data = pattern_data[((in_hflip ? (g_pwidth - 1) - sample_x : sample_x) >> 1) + ((in_vflip ? (g_pheight - 1) - sample_y : sample_y) * (g_pwidth >> 1))];
 			sample_data = (((sample_x + in_hflip) & 1) ? sample_data : (sample_data >> 4U)) & ((1U << 4U) - 1U);
 			if (sample_data) {
 				sample_data = in_palette ? in_palette[sample_data] : sample_data;
@@ -169,8 +172,8 @@ void RGSDrawSprite4(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pal
 void RGSDrawSprite8(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_palette, bool in_hflip, bool in_vflip, bool in_hwrap, bool in_vwrap) {
 	if (in_hwrap) in_x = in_x >= 0 ? (in_x % g_cwidth) : (g_cwidth + (in_x % g_cwidth));
 	if (in_vwrap) in_y = in_y >= 0 ? (in_y % g_cheight) : (g_cheight + (in_y % g_cheight));
-	const uint8_t* pattern_data = g_patterns + ((RGS_PATTERN_WIDTH * RGS_PATTERN_HEIGHT) * (size_t)(in_pattern & (RGS_PATTERN_COUNT - 1)));
-	for (int sample_y = 0; sample_y < RGS_PATTERN_HEIGHT; sample_y++) {
+	const uint8_t* pattern_data = g_pdata + ((g_pwidth * g_pheight) * (size_t)(in_pattern % g_pcount));
+	for (int sample_y = 0; sample_y < g_pheight; sample_y++) {
 		int pixel_y = in_y + sample_y;
 		if (in_vwrap) {
 			if (pixel_y >= g_cheight) pixel_y %= g_cheight;
@@ -180,7 +183,7 @@ void RGSDrawSprite8(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pal
 			if (pixel_y < 0) continue;
 			else if (pixel_y >= g_sheight) break;
 		};
-		for (int sample_x = 0; sample_x < RGS_PATTERN_WIDTH; sample_x++) {
+		for (int sample_x = 0; sample_x < g_pwidth; sample_x++) {
 			int pixel_x = in_x + sample_x;
 			if (in_hwrap) {
 				if (pixel_x >= g_cwidth) pixel_x %= g_cwidth;
@@ -190,7 +193,7 @@ void RGSDrawSprite8(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pal
 				if (pixel_x < 0) continue;
 				else if (pixel_x >= g_swidth) break;
 			};
-			const uint8_t sample_data = pattern_data[(in_hflip ? (RGS_PATTERN_WIDTH - 1) - sample_x : sample_x) + ((in_vflip ? (RGS_PATTERN_HEIGHT - 1) - sample_y : sample_y) * RGS_PATTERN_WIDTH)];
+			const uint8_t sample_data = pattern_data[(in_hflip ? (g_pwidth - 1) - sample_x : sample_x) + ((in_vflip ? (g_pheight - 1) - sample_y : sample_y) * g_pwidth)];
 			if (sample_data) g_pixels[pixel_x + (pixel_y * g_length)] = in_palette ? in_palette[sample_data] : sample_data;
 		};
 	};
@@ -214,8 +217,8 @@ void RGSDrawTiles1(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette
 			else if (pixel_y >= g_sheight) break;
 		};
 		int tile_y = layer_y - in_y;
-		const int sample_y = tile_y & (RGS_PATTERN_HEIGHT - 1);
-		tile_y >>= 3;
+		const int sample_y = tile_y & (g_pheight - 1);
+		tile_y /= g_pheight;
 		int layer_x = in_x;
 		do {
 			int pixel_x = layer_x;
@@ -228,12 +231,12 @@ void RGSDrawTiles1(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette
 				else if (pixel_x >= g_swidth) break;
 			};
 			int tile_x = layer_x - in_x;
-			const int sample_x = tile_x & (RGS_PATTERN_WIDTH - 1);
-			tile_x >>= 3;
-			const RGSTile tile_data = in_tiles[tile_x + (tile_y * ((g_cwidth + (RGS_PATTERN_WIDTH - 1)) >> 3))];
-			const uint8_t* pattern_data = g_patterns + (((RGS_PATTERN_WIDTH >> 3) * RGS_PATTERN_HEIGHT) * (size_t)(tile_data.pattern & (RGS_PATTERN_COUNT - 1)));
-			uint8_t sample_data = pattern_data[(tile_data.vflip ? (RGS_PATTERN_HEIGHT - 1) - sample_y : sample_y) * (RGS_PATTERN_WIDTH >> 3)];
-			sample_data = (sample_data >> (tile_data.hflip ? sample_x : (7U - sample_x))) & ((1U << 1U) - 1U); 
+			const int sample_x = tile_x & (g_pwidth - 1);
+			tile_x /= g_pwidth;
+			const RGSTile tile_data = in_tiles[tile_x + (tile_y * ((g_cwidth + (g_pwidth - 1)) / g_pwidth))];
+			const uint8_t* pattern_data = g_pdata + (((g_pwidth >> 3) * g_pheight) * (size_t)(tile_data.pattern % g_pcount));
+			uint8_t sample_data = pattern_data[((tile_data.hflip ? (g_pwidth - 1) - sample_x : sample_x) >> 3) + ((tile_data.vflip ? (g_pheight - 1) - sample_y : sample_y) * (g_pwidth >> 3))];
+			sample_data = (sample_data >> (tile_data.hflip ? (sample_x & 7) : (7U - (sample_x & 7)))) & ((1U << 1U) - 1U); 
 			if (!in_transparent || sample_data) {
 				sample_data = (in_palettes && in_palettes[tile_data.palette]) ? in_palettes[tile_data.palette][sample_data] : sample_data;
 				const size_t pixel_index = (size_t)((pixel_x >> 3) + (pixel_y * g_length));
@@ -262,8 +265,8 @@ void RGSDrawTiles4(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette
 			else if (pixel_y >= g_sheight) break;
 		};
 		int tile_y = layer_y - in_y;
-		const int sample_y = tile_y & (RGS_PATTERN_HEIGHT - 1);
-		tile_y >>= 3;
+		const int sample_y = tile_y & (g_pheight - 1);
+		tile_y /= g_pheight;
 		int layer_x = in_x;
 		do {
 			int pixel_x = layer_x;
@@ -276,11 +279,11 @@ void RGSDrawTiles4(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette
 				else if (pixel_x >= g_swidth) break;
 			};
 			int tile_x = layer_x - in_x;
-			const int sample_x = tile_x & (RGS_PATTERN_WIDTH - 1);
-			tile_x >>= 3;
-			const RGSTile tile_data = in_tiles[tile_x + (tile_y * ((g_cwidth + (RGS_PATTERN_WIDTH - 1)) >> 3))];
-			const uint8_t* pattern_data = g_patterns + (((RGS_PATTERN_WIDTH >> 1) * RGS_PATTERN_HEIGHT) * (size_t)(tile_data.pattern & (RGS_PATTERN_COUNT - 1)));
-			uint8_t sample_data = pattern_data[((tile_data.hflip ? (RGS_PATTERN_WIDTH - 1) - sample_x : sample_x) >> 1) + ((tile_data.vflip ? (RGS_PATTERN_HEIGHT - 1) - sample_y : sample_y) * (RGS_PATTERN_WIDTH >> 1))];
+			const int sample_x = tile_x & (g_pwidth - 1);
+			tile_x /= g_pwidth;
+			const RGSTile tile_data = in_tiles[tile_x + (tile_y * ((g_cwidth + (g_pwidth - 1)) / g_pwidth))];
+			const uint8_t* pattern_data = g_pdata + (((g_pwidth >> 1) * g_pheight) * (size_t)(tile_data.pattern % g_pcount));
+			uint8_t sample_data = pattern_data[((tile_data.hflip ? (g_pwidth - 1) - sample_x : sample_x) >> 1) + ((tile_data.vflip ? (g_pheight - 1) - sample_y : sample_y) * (g_pwidth >> 1))];
 			sample_data = (((sample_x + tile_data.hflip) & 1) ? sample_data : (sample_data >> 4U)) & ((1U << 4U) - 1U);
 			if (!in_transparent || sample_data) {
 				sample_data = (in_palettes && in_palettes[tile_data.palette]) ? in_palettes[tile_data.palette][sample_data] : sample_data;
@@ -311,8 +314,8 @@ void RGSDrawTiles8(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette
 			else if (pixel_y >= g_sheight) break;
 		};
 		int tile_y = layer_y - in_y;
-		const int sample_y = tile_y & (RGS_PATTERN_HEIGHT - 1);
-		tile_y >>= 3;
+		const int sample_y = tile_y & (g_pheight - 1);
+		tile_y /= g_pheight;
 		int layer_x = in_x;
 		do {
 			int pixel_x = layer_x;
@@ -325,11 +328,11 @@ void RGSDrawTiles8(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette
 				else if (pixel_x >= g_swidth) break;
 			};
 			int tile_x = layer_x - in_x;
-			const int sample_x = tile_x & (RGS_PATTERN_WIDTH - 1);
-			tile_x >>= 3;
-			const RGSTile tile_data = in_tiles[tile_x + (tile_y * ((g_cwidth + (RGS_PATTERN_WIDTH - 1)) >> 3))];
-			const uint8_t* pattern_data = g_patterns + ((RGS_PATTERN_WIDTH * RGS_PATTERN_HEIGHT) * (size_t)(tile_data.pattern & (RGS_PATTERN_COUNT - 1)));
-			const uint8_t sample_data = pattern_data[(tile_data.hflip ? (RGS_PATTERN_WIDTH - 1) - sample_x : sample_x) + ((tile_data.vflip ? (RGS_PATTERN_HEIGHT - 1) - sample_y : sample_y) * RGS_PATTERN_WIDTH)];
+			const int sample_x = tile_x & (g_pwidth - 1);
+			tile_x /= g_pwidth;
+			const RGSTile tile_data = in_tiles[tile_x + (tile_y * ((g_cwidth + (g_pwidth - 1)) / g_pwidth))];
+			const uint8_t* pattern_data = g_pdata + ((g_pwidth * g_pheight) * (size_t)(tile_data.pattern % g_pcount));
+			const uint8_t sample_data = pattern_data[(tile_data.hflip ? (g_pwidth - 1) - sample_x : sample_x) + ((tile_data.vflip ? (g_pheight - 1) - sample_y : sample_y) * g_pwidth)];
 			if (!in_transparent || sample_data) g_pixels[pixel_x + (pixel_y * g_length)] = (in_palettes && in_palettes[tile_data.palette]) ? in_palettes[tile_data.palette][sample_data] : sample_data;
 		}
 		while (++layer_x < layer_x_end);
@@ -489,25 +492,48 @@ static void RGSGraphicsThreadJob(void* inout_parameters) {
 
 
 bool RGSPrepareGraphics(const RGSGameInfo* in_game, const RGSGraphicsInfo* in_graphics) {
+	g_pwidth = (int)(in_graphics->pattern_width);
+	if (g_pwidth != 8 && g_pwidth != 16 && g_pwidth != 32) {
+		if (g_pwidth > 8) {
+			if (g_pwidth > 16) g_pwidth = 32;
+			else g_pwidth = 16;
+		}
+		else g_pwidth = 8;
+		RGSReportWarning("Graphics", "Pattern width must be 8, 16 or 32");
+	};
+	g_pheight = (int)(in_graphics->pattern_height);
+	if (g_pheight != 8 && g_pheight != 16 && g_pheight != 32) {
+		if (g_pheight > 8) {
+			if (g_pheight > 16) g_pheight = 32;
+			else g_pheight = 16;
+		}
+		else g_pheight = 8;
+		RGSReportWarning("Graphics", "Pattern height must be 8, 16 or 32");
+	};
 	g_cwidth = (int)(in_graphics->canvas_width);
-	if (!g_cwidth || g_cwidth > 1024 || g_cwidth % 8) {
+	if (g_cwidth <= 0 || g_cwidth > 1024 || g_cwidth % g_pwidth) {
 		g_cwidth = 1024;
-		RGSReportWarning("Graphics", "Canvas width must be a multiple of 8 and between 1 and 1024");
+		RGSReportWarning("Graphics", "Canvas width must be a multiple of pattern width and between 1 and 1024");
 	};
 	g_cheight = (int)(in_graphics->canvas_height);
-	if (!g_cheight || g_cheight > 1024 || g_cheight % 8) {
+	if (g_cheight <= 0 || g_cheight > 1024 || g_cheight % g_pheight) {
 		g_cheight = 1024;
-		RGSReportWarning("Graphics", "Canvas height must be a multiple of 8 and between 1 and 1024");
+		RGSReportWarning("Graphics", "Canvas height must be a multiple of pattern height and between 1 and 1024");
 	};
 	g_swidth = (int)(in_graphics->screen_width);
-	if (!g_swidth || g_swidth > g_cwidth) {
+	if (!g_swidth || g_swidth > g_cwidth || g_swidth % g_pwidth) {
 		g_swidth = g_cwidth;
-		RGSReportWarning("Graphics", "Screen width must be between 1 and canvas width");
+		RGSReportWarning("Graphics", "Screen width must be a multple of pattern width between 1 and canvas width");
 	};
 	g_sheight = (int)(in_graphics->screen_height);
-	if (!g_sheight || g_sheight > g_cheight) {
+	if (g_sheight <= 0 || g_sheight > g_cheight || g_sheight % g_pheight) {
 		g_sheight = g_cheight;
-		RGSReportWarning("Graphics", "Screen height must be between 1 and canvas height");
+		RGSReportWarning("Graphics", "Screen height must be a multiple of pattern height between 1 and canvas height");
+	};
+	g_pcount = (int)(in_graphics->pattern_count);
+	if (g_pcount < 0 || g_pcount > 256) {
+		g_pcount = 256;
+		RGSReportWarning("Graphics", "Pattern count must be less than or equal to 256");
 	};
 	g_bits = (int)(in_graphics->bits_per_pixel);
 	if (g_bits != 1 && g_bits != 2 && g_bits != 4 && g_bits != 8) {
@@ -562,8 +588,8 @@ bool RGSPrepareGraphics(const RGSGameInfo* in_game, const RGSGraphicsInfo* in_gr
 		g_draw_tiles = &RGSDrawTiles8;
 		break;
 	};
-	g_patterns = calloc((size_t)(((RGS_PATTERN_WIDTH * g_bits) >> 3) * RGS_PATTERN_HEIGHT * RGS_PATTERN_COUNT), sizeof(*g_patterns));
-	if (!g_patterns) {
+	g_pdata = calloc((size_t)(((g_pwidth * g_bits) >> 3) * g_pheight * g_pcount), sizeof(*g_pdata));
+	if (!g_pdata) {
 		RGSReportError("Graphics", "Failed to allocate patterns", true);
 		return false;
 	};
@@ -573,7 +599,7 @@ bool RGSPrepareGraphics(const RGSGameInfo* in_game, const RGSGraphicsInfo* in_gr
 #endif
 	g_pixels = (uint8_t*)(malloc((size_t)(g_length * g_sheight) * sizeof(*g_pixels)));
 	if (!g_pixels) {
-		free((void*)(g_patterns));
+		free((void*)(g_pdata));
 		RGSReportError("Graphics", "Failed to allocate pixels", true);
 		return false;
 	};
@@ -581,7 +607,7 @@ bool RGSPrepareGraphics(const RGSGameInfo* in_game, const RGSGraphicsInfo* in_gr
 	g_bitmap = (LPBITMAPINFO)(malloc(sizeof(*g_bitmap) + (sizeof(*g_bitmap->bmiColors) * ((size_t)(g_colours) - 1U))));
 	if (!g_bitmap) {
 		free((void*)(g_pixels));
-		free((void*)(g_patterns));
+		free((void*)(g_pdata));
 		RGSReportError("Graphics", "Failed to allocate bitmap", true);
 		return false;
 	};
@@ -608,7 +634,7 @@ bool RGSPrepareGraphics(const RGSGameInfo* in_game, const RGSGraphicsInfo* in_gr
 		free(g_bitmap);
 #endif
 		free(g_pixels);
-		free(g_patterns);
+		free(g_pdata);
 		RGSReportError("Graphics", "Failed to create lock", true);
 		return false;
 	};
@@ -623,7 +649,7 @@ bool RGSPrepareGraphics(const RGSGameInfo* in_game, const RGSGraphicsInfo* in_gr
 			free(g_bitmap);
 #endif
 			free(g_pixels);
-			free(g_patterns);
+			free(g_pdata);
 			return false;
 		};
 		g_created = true;
@@ -651,7 +677,7 @@ void RGSReleaseGraphics() {
 	free((void*)(g_bitmap));
 #endif
 	free((void*)(g_pixels));
-	free((void*)(g_patterns));
+	free((void*)(g_pdata));
 };
 
 
@@ -734,14 +760,14 @@ void RGSReadPattern(RGSPattern in_index, uint32_t in_bits, uint8_t* out_data) {
 	const uint8_t* pattern_data;
 	switch (g_bits) {
 	case 1:
-		pattern_data = g_patterns + (((RGS_PATTERN_WIDTH >> 3) * RGS_PATTERN_HEIGHT) * (size_t)(in_index & (RGS_PATTERN_COUNT - 1)));
+		pattern_data = g_pdata + (((g_pwidth >> 3) * g_pheight) * (size_t)(in_index % g_pcount));
 		switch (in_bits) {
 		case 1U: {
-			memcpy(out_data, pattern_data, ((RGS_PATTERN_WIDTH >> 3) * RGS_PATTERN_HEIGHT) * sizeof(*pattern_data));
+			memcpy(out_data, pattern_data, ((g_pwidth >> 3) * g_pheight) * sizeof(*pattern_data));
 			break;
 		};
 		case 2U: {
-			const uint8_t* const data_end = out_data + (RGS_PATTERN_HEIGHT << 1);
+			const uint8_t* const data_end = out_data + ((g_pwidth >> 2) * g_pheight);
 			do {
 				uint8_t sample_data = ((*pattern_data >> 7U) & ((1U << 1U) - 1U)) << 6U;
 				sample_data |= ((*pattern_data >> 6U) & ((1U << 1U) - 1U)) << 4U;
@@ -756,7 +782,7 @@ void RGSReadPattern(RGSPattern in_index, uint32_t in_bits, uint8_t* out_data) {
 			break;
 		};
 		case 4U: {
-			const uint8_t* const data_end = out_data + (RGS_PATTERN_HEIGHT << 2);
+			const uint8_t* const data_end = out_data + ((g_pwidth >> 1) * g_pheight);
 			do {
 				uint8_t sample_data = ((*pattern_data >> 7U) & ((1U << 1U) - 1U)) << 4U;
 				*(out_data++) = sample_data | ((*pattern_data >> 6U) & ((1U << 1U) - 1U));
@@ -771,7 +797,7 @@ void RGSReadPattern(RGSPattern in_index, uint32_t in_bits, uint8_t* out_data) {
 			break;
 		};
 		case 8U: {
-			const uint8_t* const data_end = out_data + (RGS_PATTERN_HEIGHT << 3);
+			const uint8_t* const data_end = out_data + (g_pwidth * g_pheight);
 			do {
 				*(out_data++) = (*pattern_data >> 7U) & ((1U << 1U) - 1U);
 				*(out_data++) = (*pattern_data >> 6U) & ((1U << 1U) - 1U);
@@ -788,11 +814,11 @@ void RGSReadPattern(RGSPattern in_index, uint32_t in_bits, uint8_t* out_data) {
 		};
 		break;
 	case 2:
-		pattern_data = g_patterns + (((RGS_PATTERN_WIDTH >> 2) * RGS_PATTERN_HEIGHT) * (size_t)(in_index & (RGS_PATTERN_COUNT - 1)));
+		pattern_data = g_pdata + (((g_pwidth >> 2) * g_pheight) * (size_t)(in_index % g_pcount));
 		switch (in_bits) {
 		case 1U: break;
 		case 2U: {
-			memcpy(out_data, pattern_data, ((RGS_PATTERN_WIDTH >> 2) * RGS_PATTERN_HEIGHT) * sizeof(*pattern_data));
+			memcpy(out_data, pattern_data, ((g_pwidth >> 2) * g_pheight) * sizeof(*pattern_data));
 			break;
 		};
 		case 4U: break;
@@ -800,10 +826,10 @@ void RGSReadPattern(RGSPattern in_index, uint32_t in_bits, uint8_t* out_data) {
 		};
 		break;
 	case 4:
-		pattern_data = g_patterns + (((RGS_PATTERN_WIDTH >> 1) * RGS_PATTERN_HEIGHT) * (size_t)(in_index & (RGS_PATTERN_COUNT - 1)));
+		pattern_data = g_pdata + (((g_pwidth >> 1) * g_pheight) * (size_t)(in_index % g_pcount));
 		switch (in_bits) {
 		case 1U: {
-			const uint8_t* const data_end = out_data + RGS_PATTERN_HEIGHT;
+			const uint8_t* const data_end = out_data + ((g_pwidth >> 3) * g_pheight);
 			do {
 				uint8_t sample_data = ((*pattern_data >> 4U) & ((1U << 1U) - 1U)) << 7U;
 				sample_data |= (*(pattern_data++) & ((1U << 1U) - 1U)) << 6U;
@@ -818,7 +844,7 @@ void RGSReadPattern(RGSPattern in_index, uint32_t in_bits, uint8_t* out_data) {
 			break;
 		};
 		case 2U: {
-			const uint8_t* const data_end = out_data + (RGS_PATTERN_HEIGHT << 1);
+			const uint8_t* const data_end = out_data + ((g_pwidth >> 2) * g_pheight);
 			do {
 				uint8_t sample_data = ((*pattern_data >> 4U) & ((1U << 2U) - 1U)) << 6U;
 				sample_data |= (*(pattern_data++) & ((1U << 2U) - 1U)) << 4U;
@@ -829,11 +855,11 @@ void RGSReadPattern(RGSPattern in_index, uint32_t in_bits, uint8_t* out_data) {
 			break;
 		};
 		case 4U: {
-			memcpy(out_data, pattern_data, ((RGS_PATTERN_WIDTH >> 1) * RGS_PATTERN_HEIGHT) * sizeof(*pattern_data));
+			memcpy(out_data, pattern_data, ((g_pwidth >> 1) * g_pheight) * sizeof(*pattern_data));
 			break;
 		};
 		case 8U: {
-			const uint8_t* const data_end = out_data + (RGS_PATTERN_WIDTH * RGS_PATTERN_HEIGHT);
+			const uint8_t* const data_end = out_data + (g_pwidth * g_pheight);
 			do {
 				const uint8_t sample_data = *(pattern_data++);
 				*(out_data++) = (sample_data >> 4U) & ((1U << 8U) - 1U);
@@ -845,10 +871,10 @@ void RGSReadPattern(RGSPattern in_index, uint32_t in_bits, uint8_t* out_data) {
 		};
 		break;
 	case 8:
-		pattern_data = g_patterns + ((RGS_PATTERN_WIDTH * RGS_PATTERN_HEIGHT) * (size_t)(in_index & (RGS_PATTERN_COUNT - 1)));
+		pattern_data = g_pdata + ((g_pwidth * g_pheight) * (size_t)(in_index % g_pcount));
 		switch (in_bits) {
 		case 1U: {
-			const uint8_t* const data_end = out_data + RGS_PATTERN_HEIGHT;
+			const uint8_t* const data_end = out_data + ((g_pwidth >> 3) * g_pheight);
 			do {
 				uint8_t sample_data = (*(pattern_data++) & ((1U << 1U) - 1U)) << 7U;
 				sample_data |= (*(pattern_data++) & ((1U << 1U) - 1U)) << 6U;
@@ -863,7 +889,7 @@ void RGSReadPattern(RGSPattern in_index, uint32_t in_bits, uint8_t* out_data) {
 			break;
 		};
 		case 2U: {
-			const uint8_t* const data_end = out_data + (RGS_PATTERN_HEIGHT << 1);
+			const uint8_t* const data_end = out_data + ((g_pwidth >> 2) * g_pheight);
 			do {
 				uint8_t sample_data = (*(pattern_data++) & ((1U << 2U) - 1U)) << 6U;
 				sample_data |= (*(pattern_data++) & ((1U << 2U) - 1U)) << 4U;
@@ -874,7 +900,7 @@ void RGSReadPattern(RGSPattern in_index, uint32_t in_bits, uint8_t* out_data) {
 			break;
 		};
 		case 4U: {
-			const uint8_t* const data_end = out_data + (RGS_PATTERN_HEIGHT << 2);
+			const uint8_t* const data_end = out_data + ((g_pwidth >> 1) * g_pheight);
 			do {
 				const uint8_t sample_data = (*(pattern_data++) & ((1U << 4U) - 1U)) << 4U;
 				*out_data = sample_data | (*(pattern_data++) & ((1U << 4U) - 1U));
@@ -883,7 +909,7 @@ void RGSReadPattern(RGSPattern in_index, uint32_t in_bits, uint8_t* out_data) {
 			break;
 		};
 		case 8U: {
-			memcpy(out_data, pattern_data, (RGS_PATTERN_WIDTH * RGS_PATTERN_HEIGHT) * sizeof(*pattern_data));
+			memcpy(out_data, pattern_data, (g_pwidth * g_pheight) * sizeof(*pattern_data));
 			break;
 		};
 		};
@@ -896,14 +922,14 @@ void RGSWritePattern(RGSPattern in_index, uint32_t in_bits, const uint8_t* in_da
 	uint8_t* pattern_data;
 	switch (g_bits) {
 	case 1:
-		pattern_data = g_patterns + (((RGS_PATTERN_WIDTH >> 3) * RGS_PATTERN_HEIGHT) * (size_t)(in_index & (RGS_PATTERN_COUNT - 1)));
+		pattern_data = g_pdata + (((g_pwidth >> 3) * g_pheight) * (size_t)(in_index % g_pcount));
 		switch (in_bits) {
 		case 1U: {
-			memcpy(pattern_data, in_data, ((RGS_PATTERN_WIDTH >> 3) * RGS_PATTERN_HEIGHT) * sizeof(*pattern_data));
+			memcpy(pattern_data, in_data, ((g_pwidth >> 3) * g_pheight) * sizeof(*pattern_data));
 			break;
 		};
 		case 2U: {
-			const uint8_t* const data_end = in_data + (RGS_PATTERN_HEIGHT << 1);
+			const uint8_t* const data_end = in_data + ((g_pwidth >> 2) * g_pheight);
 			do {
 				uint8_t sample_data = *(in_data++);
 				*pattern_data = ((sample_data >> 6U) & ((1U << 1U) - 1U)) << 7U;
@@ -920,7 +946,7 @@ void RGSWritePattern(RGSPattern in_index, uint32_t in_bits, const uint8_t* in_da
 			break;
 		};
 		case 4U: {
-			const uint8_t* const data_end = in_data + (RGS_PATTERN_HEIGHT << 2);
+			const uint8_t* const data_end = in_data + ((g_pwidth >> 1) * g_pheight);
 			do {
 				uint8_t sample_data = *(in_data++);
 				*pattern_data = ((sample_data >> 4U) & ((1U << 1U) - 1U)) << 7U;
@@ -939,7 +965,7 @@ void RGSWritePattern(RGSPattern in_index, uint32_t in_bits, const uint8_t* in_da
 			break;
 		};
 		case 8U: {
-			const uint8_t* const data_end = in_data + (RGS_PATTERN_HEIGHT << 3);
+			const uint8_t* const data_end = in_data + (g_pwidth * g_pheight);
 			do {
 				*pattern_data = (*(in_data++) & ((1U << 1U) - 1U)) << 7U;
 				*pattern_data |= (*(in_data++) & ((1U << 1U) - 1U)) << 6U;
@@ -956,11 +982,11 @@ void RGSWritePattern(RGSPattern in_index, uint32_t in_bits, const uint8_t* in_da
 		};
 		break;
 	case 2:
-		pattern_data = g_patterns + (((RGS_PATTERN_WIDTH >> 2) * RGS_PATTERN_HEIGHT) * (size_t)(in_index & (RGS_PATTERN_COUNT - 1)));
+		pattern_data = g_pdata + (((g_pwidth >> 2) * g_pheight) * (size_t)(in_index % g_pcount));
 		switch (in_bits) {
 		case 1U: break;
 		case 2U: {
-			memcpy(pattern_data, in_data, ((RGS_PATTERN_WIDTH >> 2) * RGS_PATTERN_HEIGHT) * sizeof(*pattern_data));
+			memcpy(pattern_data, in_data, ((g_pwidth >> 2) * g_pheight) * sizeof(*pattern_data));
 			break;
 		};
 		case 4U: break;
@@ -968,10 +994,10 @@ void RGSWritePattern(RGSPattern in_index, uint32_t in_bits, const uint8_t* in_da
 		};
 		break;
 	case 4:
-		pattern_data = g_patterns + (((RGS_PATTERN_WIDTH >> 1) * RGS_PATTERN_HEIGHT) * (size_t)(in_index & (RGS_PATTERN_COUNT - 1)));
+		pattern_data = g_pdata + (((g_pwidth >> 1) * g_pheight) * (size_t)(in_index % g_pcount));
 		switch (in_bits) {
 		case 1U: {
-			const uint8_t* const data_end = in_data + RGS_PATTERN_HEIGHT;
+			const uint8_t* const data_end = in_data + ((g_pwidth >> 3) * g_pheight);
 			do {
 				const uint8_t sample_data = *in_data;
 				*pattern_data = ((sample_data >> 7U) & ((1U << 1U) - 1U)) << 4U;
@@ -987,7 +1013,7 @@ void RGSWritePattern(RGSPattern in_index, uint32_t in_bits, const uint8_t* in_da
 			break;
 		};
 		case 2U: {
-			const uint8_t* const data_end = in_data + (RGS_PATTERN_HEIGHT << 1);
+			const uint8_t* const data_end = in_data + ((g_pwidth >> 2) * g_pheight);
 			do {
 				const uint8_t sample_data = *in_data;
 				*pattern_data = ((sample_data >> 6U) & ((1U << 2U) - 1U)) << 4;
@@ -999,11 +1025,11 @@ void RGSWritePattern(RGSPattern in_index, uint32_t in_bits, const uint8_t* in_da
 			break;
 		};
 		case 4U: {
-			memcpy(pattern_data, in_data, ((RGS_PATTERN_WIDTH >> 1) * RGS_PATTERN_HEIGHT) * sizeof(*pattern_data));
+			memcpy(pattern_data, in_data, ((g_pwidth >> 1) * g_pheight) * sizeof(*pattern_data));
 			break;
 		};
 		case 8U: {
-			const uint8_t* const data_end = in_data + (RGS_PATTERN_WIDTH * RGS_PATTERN_HEIGHT);
+			const uint8_t* const data_end = in_data + (g_pwidth * g_pheight);
 			do {
 				*pattern_data = *(in_data++) << 4U;
 				*(pattern_data++) |= *(in_data++);
@@ -1014,10 +1040,10 @@ void RGSWritePattern(RGSPattern in_index, uint32_t in_bits, const uint8_t* in_da
 		};
 		break;
 	case 8:
-		pattern_data = g_patterns + ((RGS_PATTERN_WIDTH * RGS_PATTERN_HEIGHT) * (size_t)(in_index & (RGS_PATTERN_COUNT - 1)));
+		pattern_data = g_pdata + ((g_pwidth * g_pheight) * (size_t)(in_index % g_pcount));
 		switch (in_bits) {
 		case 1U: {
-			const uint8_t* const data_end = in_data + RGS_PATTERN_HEIGHT;
+			const uint8_t* const data_end = in_data + ((g_pwidth >> 3) * g_pheight);
 			do {
 				const uint8_t sample_data = *in_data;
 				*(pattern_data++) = (sample_data >> 7U) & ((1U << 1U) - 1U);
@@ -1033,7 +1059,7 @@ void RGSWritePattern(RGSPattern in_index, uint32_t in_bits, const uint8_t* in_da
 			break;			
 		};
 		case 2U: {
-			const uint8_t* const data_end = in_data + (RGS_PATTERN_HEIGHT << 1);
+			const uint8_t* const data_end = in_data + ((g_pwidth >> 2) * g_pheight);
 			do {
 				const uint8_t sample_data = *in_data;
 				*(pattern_data++) = (sample_data >> 6U) & ((1U << 2U) - 1U);
@@ -1045,7 +1071,7 @@ void RGSWritePattern(RGSPattern in_index, uint32_t in_bits, const uint8_t* in_da
 			break;
 		};
 		case 4U: {
-			const uint8_t* const data_end = in_data + (RGS_PATTERN_HEIGHT << 2);
+			const uint8_t* const data_end = in_data + ((g_pwidth >> 1) * g_pheight);
 			do {
 				const uint8_t sample_data = *in_data;
 				*(pattern_data++) = (sample_data >> 4U) & ((1U << 4U) - 1U);
@@ -1055,7 +1081,7 @@ void RGSWritePattern(RGSPattern in_index, uint32_t in_bits, const uint8_t* in_da
 			break;
 		};
 		case 8U: {
-			memcpy(pattern_data, in_data, (RGS_PATTERN_WIDTH * RGS_PATTERN_HEIGHT) * sizeof(*pattern_data));
+			memcpy(pattern_data, in_data, (g_pwidth * g_pheight) * sizeof(*pattern_data));
 			break;
 		};
 		};

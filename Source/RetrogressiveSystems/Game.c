@@ -44,6 +44,7 @@ int WINAPI WinMain(HINSTANCE in_instance, HINSTANCE in_previous, LPSTR in_comman
 #endif
 		1024, 1024,
 		1024, 1024,
+		32U, 32U, 256U,
 		8U, 60U,
 		true
 	};
