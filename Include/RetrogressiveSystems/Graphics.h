@@ -6,11 +6,6 @@
 #include <RetrogressiveSystems/Types.h>
 
 
-#define RGS_PATTERN_WIDTH															8										// Pattern Width In Pixels
-#define RGS_PATTERN_HEIGHT															8										// Pattern Height In Pixels
-#define RGS_PATTERN_COUNT															256										// Total Pattern Count
-
-
 typedef uint32_t RGSColour;																									// Packed Colour Type
 typedef const uint8_t* RGSPalette;																							// Colour Palette Parameter Type
 typedef uint8_t RGSPalette1[1U << 1U];																						// 1-Bit Colour Palette Type
@@ -60,10 +55,13 @@ typedef struct RGSGraphicsInfo {
 #endif
 	const char* window_title;																								// Window Title Pointer (Optional)
 #endif
-	uint32_t screen_width;																									// Screen Width In Pixels (Must be a multiple of 8 and between 1 and canvas width)
-	uint32_t screen_height;																									// Screen Height In Pixels (Must be a multiple of 8 and between 1 and canvas height)
-	uint32_t canvas_width;																									// Canvas Width In Pixels (Must be a multiple of 8 and between 1 and 1024)
-	uint32_t canvas_height;																									// Canvas Height In Pixels (Must be a multiple of 8 and between 1 and 1024)
+	uint32_t screen_width;																									// Screen Width In Pixels (Must be a multiple of pattern width and between 1 and canvas width)
+	uint32_t screen_height;																									// Screen Height In Pixels (Must be a multiple of pattern height and between 1 and canvas height)
+	uint32_t canvas_width;																									// Canvas Width In Pixels (Must be a multiple of pattern width and between 1 and 1024)
+	uint32_t canvas_height;																									// Canvas Height In Pixels (Must be a multiple of pattern height and between 1 and 1024)
+	uint32_t pattern_width;																									// Pattern Width In Pixels (Must be 8, 16 or 32)
+	uint32_t pattern_height;																								// Pattern Height In Pixels (Must be 8, 16 or 32)
+	uint32_t pattern_count;																									// Maximum Pattern Count (Must be less than or equal to 256)
 	uint32_t bits_per_pixel;																								// Target Bits Per Pixel (Must be 1, 2, 4 or 8)
 	uint32_t frame_rate;																									// Target Frame Rate (Must be between 1 and 60)
 	bool threaded;																											// Try To Use A Separate Thread?
@@ -113,6 +111,14 @@ RGS_EXTERN uint8_t RGSGetPixel(int in_x, int in_y);
 /// @param in_y 
 /// @param in_index 
 RGS_EXTERN void RGSSetPixel(int in_x, int in_y, uint8_t in_index);
+
+/// @brief Reads all of the pixels on screen (Pixel array must fill screen)
+/// @param out_pixels 
+RGS_EXTERN void RGSReadPixels(uint8_t* out_pixels);
+
+/// @brief Writes all of the pixels to the screen (Pixel array must fill screen)
+/// @param in_pixels 
+RGS_EXTERN void RGSWritePixels(const uint8_t* in_pixels);
 
 
 /// @brief Draws a sprite to the virtual screen (Pattern index must be lower than pattern count)

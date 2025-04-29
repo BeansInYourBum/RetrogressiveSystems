@@ -56,6 +56,8 @@ static volatile bool g_started = false;
 
 static uint8_t(*g_get_pixel)(int, int) = RGS_NULL;
 static void(*g_set_pixel)(int, int, uint8_t) = RGS_NULL;
+static void(*g_read_pixels)(uint8_t*) = RGS_NULL;
+static void(*g_write_pixels)(const uint8_t*) = RGS_NULL;
 static void(*g_draw_sprite)(int, int, RGSPattern, RGSPalette, bool, bool, bool, bool) = RGS_NULL;
 static void(*g_draw_tiles)(int, int, const RGSTile*, const RGSPalette*, bool, bool, bool) = RGS_NULL;
 
@@ -69,36 +71,136 @@ static volatile bool g_created = false;
 
 /// Internal Graphics Functions
 
-uint8_t RGSGetPixel1(int in_x, int in_y) {
+static uint8_t RGSGetPixel1(int in_x, int in_y) {
 	const uint8_t sample_data = g_pixels[(in_x >> 3) + (in_y * g_length)];
 	return (sample_data >> (uint8_t)(7 - (in_x & 7))) & ((1U << 1U) - 1U);
 };
 
-uint8_t RGSGetPixel4(int in_x, int in_y) {
+static uint8_t RGSGetPixel4(int in_x, int in_y) {
 	const uint8_t sample_data = g_pixels[(in_x >> 1) + (in_y * g_length)];
 	return ((in_x & 1) ? sample_data : (sample_data >> 4U)) & ((1U << 4U) - 1U);
 };
 
-uint8_t RGSGetPixel8(int in_x, int in_y) { return g_pixels[in_x + (in_y * g_length)]; };
+static uint8_t RGSGetPixel8(int in_x, int in_y) { return g_pixels[in_x + (in_y * g_length)]; };
 
 
-void RGSSetPixel1(int in_x, int in_y, uint8_t in_index) {
+static void RGSSetPixel1(int in_x, int in_y, uint8_t in_index) {
 	const size_t sample_index = (size_t)((in_x >> 3) + (in_y * g_length));
 	const uint8_t sample_data = g_pixels[sample_index];
 	g_pixels[sample_index] = (sample_data & (uint8_t)(~(1 << (7 - (in_x & 7))))) | ((in_index & (uint8_t)(g_colours - 1)) << (7 - (in_x & 7)));
 };
 
-void RGSSetPixel4(int in_x, int in_y, uint8_t in_index) {
+static void RGSSetPixel4(int in_x, int in_y, uint8_t in_index) {
 	const size_t sample_index = (size_t)((in_x >> 1) + (in_y * g_length));
 	const uint8_t sample_data = g_pixels[sample_index];
 	if (in_x & 1) g_pixels[sample_index] = (sample_data & 0b11110000U) | (in_index & (uint8_t)(g_colours - 1));
 	else g_pixels[sample_index] = (sample_data & 0b00001111U) | ((in_index & (uint8_t)(g_colours - 1)) << 4U);
 };
 
-void RGSSetPixel8(int in_x, int in_y, uint8_t in_index) { g_pixels[in_x + (in_y * g_length)] = in_index & (uint8_t)(g_colours - 1); };
+static void RGSSetPixel8(int in_x, int in_y, uint8_t in_index) { g_pixels[in_x + (in_y * g_length)] = in_index & (uint8_t)(g_colours - 1); };
 
 
-void RGSDrawSprite1(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_palette, bool in_hflip, bool in_vflip, bool in_hwrap, bool in_vwrap) {
+static void RGSReadPixels1(uint8_t* out_pixels) {
+	if ((g_length << 3) == g_swidth) memcpy(out_pixels, g_pixels, g_length * g_sheight);
+	else {
+		size_t pixel_index = 0U;
+		const size_t line_size = (size_t)((g_swidth + 7) >> 3);
+		for (int pixel_y = 0; pixel_y < g_sheight; pixel_y++) {
+			memcpy(out_pixels, g_pixels + pixel_index, line_size);
+			out_pixels += line_size;
+			pixel_index += g_length;
+		};
+	};
+};
+
+static void RGSReadPixels4(uint8_t* out_pixels) {
+	if (g_colours < (1 << 4)) {
+		for (int pixel_y = 0; pixel_y < g_sheight; pixel_y++) {
+			for (int pixel_x = 0; pixel_x < g_swidth; pixel_x += 4) {
+				const uint8_t pixel_data1 = g_pixels[(pixel_x >> 1) + (pixel_y * g_length)];
+				const uint8_t pixel_data2 = g_pixels[((pixel_x + 2) >> 1) + (pixel_y * g_length)];
+				*(out_pixels++) = (((pixel_data1 >> 4) & 3) << 6) | ((pixel_data1 & 3) << 4) | (((pixel_data2 >> 4) & 3) << 2) | (pixel_data2 & 3);
+			};
+		};
+	}
+	else {
+		if ((g_length << 1) == g_swidth) memcpy(out_pixels, g_pixels, g_length * g_sheight);
+		else {
+			size_t pixel_index = 0U;
+			const size_t line_size = (size_t)((g_swidth + 1) >> 1);
+			for (int pixel_y = 0; pixel_y < g_sheight; pixel_y++) {
+				memcpy(out_pixels, g_pixels + pixel_index, line_size);
+				out_pixels += line_size;
+				pixel_index += g_length;
+			};
+		};
+	};
+};
+
+static void RGSReadPixels8(uint8_t* out_pixels) {
+	if (g_length == g_swidth) memcpy(out_pixels, g_pixels, g_length * g_sheight);
+	else {
+		size_t pixel_index = 0U;
+		for (int pixel_y = 0; pixel_y < g_sheight; pixel_y++) {
+			memcpy(out_pixels, g_pixels + pixel_index, g_swidth);
+			out_pixels += g_swidth;
+			pixel_index += g_length;
+		};
+	};
+};
+
+
+static void RGSWritePixels1(const uint8_t* in_pixels) {
+	if ((g_length << 3) == g_swidth) memcpy(g_pixels, in_pixels, g_length * g_sheight);
+	else {
+		size_t pixel_index = 0U;
+		const size_t line_size = (size_t)((g_swidth + 7) >> 3);
+		for (int pixel_y = 0; pixel_y < g_sheight; pixel_y++) {
+			memcpy(g_pixels + pixel_index, in_pixels, line_size);
+			in_pixels += line_size;
+			pixel_index += g_length;
+		};
+	};
+};
+
+static void RGSWritePixels4(const uint8_t* in_pixels) {
+	if (g_colours < (1 << 4)) {
+		for (int pixel_y = 0; pixel_y < g_sheight; pixel_y++) {
+			for (int pixel_x = 0; pixel_x < g_swidth; pixel_x += 4) {
+				const uint8_t pixel_data = *in_pixels;
+				g_pixels[(pixel_x >> 1) + (pixel_y * g_length)] = (((pixel_data >> 6) & 3) << 4) | ((pixel_data >> 4) & 3);
+				g_pixels[((pixel_x + 2) >> 1) + (pixel_y * g_length)] = (((pixel_data >> 2) & 3) << 4) | (pixel_data & 3);
+			};
+		};
+	}
+	else {
+		if ((g_length << 1) == g_swidth) memcpy(g_pixels, in_pixels, g_length * g_sheight);
+		else {
+			size_t pixel_index = 0U;
+			const size_t line_size = (size_t)((g_swidth + 1) >> 1);
+			for (int pixel_y = 0; pixel_y < g_sheight; pixel_y++) {
+				memcpy(g_pixels + pixel_index, in_pixels, line_size);
+				in_pixels += line_size;
+				pixel_index += g_length;
+			};
+		};
+	};
+};
+
+static void RGSWritePixels8(const uint8_t* in_pixels) {
+	if (g_length == g_swidth) memcpy(g_pixels, in_pixels, g_length * g_sheight);
+	else {
+		size_t pixel_index = 0U;
+		for (int pixel_y = 0; pixel_y < g_sheight; pixel_y++) {
+			memcpy(g_pixels + pixel_index, in_pixels, g_swidth);
+			in_pixels += g_swidth;
+			pixel_index += g_length;
+		};
+	};
+};
+
+
+static void RGSDrawSprite1(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_palette, bool in_hflip, bool in_vflip, bool in_hwrap, bool in_vwrap) {
 	if (in_hwrap) in_x = in_x >= 0 ? (in_x % g_cwidth) : (g_cwidth + (in_x % g_cwidth));
 	if (in_vwrap) in_y = in_y >= 0 ? (in_y % g_cheight) : (g_cheight + (in_y % g_cheight));
 	const uint8_t* pattern_data = g_pdata + (((g_pwidth >> 3) * g_pheight) * (size_t)(in_pattern % g_pcount));
@@ -133,7 +235,7 @@ void RGSDrawSprite1(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pal
 	};
 };
 
-void RGSDrawSprite4(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_palette, bool in_hflip, bool in_vflip, bool in_hwrap, bool in_vwrap) {
+static void RGSDrawSprite4(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_palette, bool in_hflip, bool in_vflip, bool in_hwrap, bool in_vwrap) {
 	if (in_hwrap) in_x = in_x >= 0 ? (in_x % g_cwidth) : (g_cwidth + (in_x % g_cwidth));
 	if (in_vwrap) in_y = in_y >= 0 ? (in_y % g_cheight) : (g_cheight + (in_y % g_cheight));
 	const uint8_t* pattern_data = g_pdata + (((g_pwidth >> 1) * g_pheight) * (size_t)(in_pattern % g_pcount));
@@ -169,7 +271,7 @@ void RGSDrawSprite4(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pal
 	};
 };
 
-void RGSDrawSprite8(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_palette, bool in_hflip, bool in_vflip, bool in_hwrap, bool in_vwrap) {
+static void RGSDrawSprite8(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_palette, bool in_hflip, bool in_vflip, bool in_hwrap, bool in_vwrap) {
 	if (in_hwrap) in_x = in_x >= 0 ? (in_x % g_cwidth) : (g_cwidth + (in_x % g_cwidth));
 	if (in_vwrap) in_y = in_y >= 0 ? (in_y % g_cheight) : (g_cheight + (in_y % g_cheight));
 	const uint8_t* pattern_data = g_pdata + ((g_pwidth * g_pheight) * (size_t)(in_pattern % g_pcount));
@@ -200,7 +302,7 @@ void RGSDrawSprite8(int in_x, int in_y, RGSPattern in_pattern, RGSPalette in_pal
 };
 
 
-void RGSDrawTiles1(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette* in_palettes, bool in_hwrap, bool in_vwrap, bool in_transparent) {
+static void RGSDrawTiles1(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette* in_palettes, bool in_hwrap, bool in_vwrap, bool in_transparent) {
 	if (in_hwrap) in_x = in_x >= 0 ? (in_x % g_cwidth) : (g_cwidth + (in_x % g_cwidth));
 	if (in_vwrap) in_y = in_y >= 0 ? (in_y % g_cheight) : (g_cheight + (in_y % g_cheight));
 	const int layer_x_end = in_x + g_cwidth;
@@ -248,7 +350,7 @@ void RGSDrawTiles1(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette
 	while (++layer_y < layer_y_end);
 };
 
-void RGSDrawTiles4(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette* in_palettes, bool in_hwrap, bool in_vwrap, bool in_transparent) {
+static void RGSDrawTiles4(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette* in_palettes, bool in_hwrap, bool in_vwrap, bool in_transparent) {
 	if (in_hwrap) in_x = in_x >= 0 ? (in_x % g_cwidth) : (g_cwidth + (in_x % g_cwidth));
 	if (in_vwrap) in_y = in_y >= 0 ? (in_y % g_cheight) : (g_cheight + (in_y % g_cheight));
 	const int layer_x_end = in_x + g_cwidth;
@@ -297,7 +399,7 @@ void RGSDrawTiles4(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette
 	while (++layer_y < layer_y_end);
 };
 
-void RGSDrawTiles8(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette* in_palettes, bool in_hwrap, bool in_vwrap, bool in_transparent) {
+static void RGSDrawTiles8(int in_x, int in_y, const RGSTile* in_tiles, const RGSPalette* in_palettes, bool in_hwrap, bool in_vwrap, bool in_transparent) {
 	if (in_hwrap) in_x = in_x >= 0 ? (in_x % g_cwidth) : (g_cwidth + (in_x % g_cwidth));
 	if (in_vwrap) in_y = in_y >= 0 ? (in_y % g_cheight) : (g_cheight + (in_y % g_cheight));
 	const int layer_x_end = in_x + g_cwidth;
@@ -559,6 +661,8 @@ bool RGSPrepareGraphics(const RGSGameInfo* in_game, const RGSGraphicsInfo* in_gr
 		line_size = (g_swidth + 7) >> 3;
 		g_get_pixel = &RGSGetPixel1;
 		g_set_pixel = &RGSSetPixel1;
+		g_read_pixels = &RGSReadPixels1;
+		g_write_pixels = &RGSWritePixels1;
 		g_draw_sprite = &RGSDrawSprite1;
 		g_draw_tiles = &RGSDrawTiles1;
 		break;
@@ -569,6 +673,8 @@ bool RGSPrepareGraphics(const RGSGameInfo* in_game, const RGSGraphicsInfo* in_gr
 		line_size = (g_swidth + 3) >> 2;
 		g_get_pixel = &RGSGetPixel2;
 		g_set_pixel = &RGSSetPixel2;
+		g_read_pixels = &RGSReadPixels2;
+		g_write_pixels = &RGSWritePixels2;
 		g_draw_sprite = &RGSDrawSprite2;
 		g_draw_tiles = &RGSDrawTiles2;
 		break;
@@ -577,6 +683,8 @@ bool RGSPrepareGraphics(const RGSGameInfo* in_game, const RGSGraphicsInfo* in_gr
 		line_size = (g_swidth + 1) >> 1;
 		g_get_pixel = &RGSGetPixel4;
 		g_set_pixel = &RGSSetPixel4;
+		g_read_pixels = &RGSReadPixels4;
+		g_write_pixels = &RGSWritePixels4;
 		g_draw_sprite = &RGSDrawSprite4;
 		g_draw_tiles = &RGSDrawTiles4;
 		break;
@@ -584,6 +692,8 @@ bool RGSPrepareGraphics(const RGSGameInfo* in_game, const RGSGraphicsInfo* in_gr
 		line_size = g_swidth;
 		g_get_pixel = &RGSGetPixel8;
 		g_set_pixel = &RGSSetPixel8;
+		g_read_pixels = &RGSReadPixels8;
+		g_write_pixels = &RGSWritePixels8;
 		g_draw_sprite = &RGSDrawSprite8;
 		g_draw_tiles = &RGSDrawTiles8;
 		break;
@@ -1098,6 +1208,16 @@ uint8_t RGSGetPixel(int in_x, int in_y) {
 void RGSSetPixel(int in_x, int in_y, uint8_t in_index) {
 	if (!g_rendering || in_x < 0 || in_x >= g_swidth || in_y < 0 || in_y >= g_sheight) return;
 	g_set_pixel(in_x, in_y, in_index);
+};
+
+void RGSReadPixels(uint8_t* out_pixels) {
+	if (!g_rendering || !out_pixels) return;
+	g_read_pixels(out_pixels);
+};
+
+void RGSWritePixels(const uint8_t* in_pixels) {
+	if (!g_rendering || !in_pixels) return;
+	g_write_pixels(in_pixels);
 };
 
 
