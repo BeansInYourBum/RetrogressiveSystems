@@ -120,10 +120,50 @@ typedef enum RGSMouseButton {
 /// @return Input state
 RGS_EXTERN RGSInputState RGSKeyboardState(RGSKeyboardKey in_key);
 
+/// @brief Checks to see if the specified keyboard key is up
+/// @param _KEY
+/// @return Key is up?
+#define RGSKeyboardUp(_KEY) (!(RGSKeyboardState(_KEY) & RGS_INPUT_STATE_DOWN))
+
+/// @brief Checks to see if the specified keyboard key was released
+/// @param _KEY
+/// @return Key was released?
+#define RGSKeyboardReleased(_KEY) (RGSKeyboardState(_KEY) == RGS_INPUT_STATE_RELEASED)
+
+/// @brief Checks to see if the specified keyboard key is down
+/// @param _KEY
+/// @return Key is down?
+#define RGSKeyboardDown(_KEY) (RGSKeyboardState(_KEY) & RGS_INPUT_STATE_DOWN)
+
+/// @brief Checks to see if the specified keyboard key was pressed
+/// @param _KEY
+/// @return Key was pressed?
+#define RGSKeyboardPressed(_KEY) (RGSKeyboardState(_KEY) == RGS_INPUT_STATE_PRESSED)
+
 /// @brief Acquires the specified mouse button state
 /// @param in_button 
 /// @return Input state
 RGS_EXTERN RGSInputState RGSMouseState(RGSMouseButton in_button);
+
+/// @brief Checks to see if the specified mouse button is up
+/// @param _BUTTON
+/// @return Button is up?
+#define RGSMouseUp(_BUTTON) (!(RGSMouseState(_BUTTON) & RGS_INPUT_STATE_DOWN))
+
+/// @brief Checks to see if the specified mouse button was released
+/// @param _BUTTON
+/// @return Button was released?
+#define RGSMouseReleased(_BUTTON) (RGSMouseState(_BUTTON) == RGS_INPUT_STATE_RELEASED)
+
+/// @brief Checks to see if the specified mouse button is down
+/// @param _BUTTON
+/// @return Button is down?
+#define RGSMouseDown(_BUTTON) (RGSMouseState(_BUTTON) & RGS_INPUT_STATE_DOWN)
+
+/// @brief Checks to see if the specified mouse button was pressed
+/// @param _BUTTON
+/// @return Button was pressed?
+#define RGSMousePressed(_BUTTON) (RGSMouseState(_BUTTON) == RGS_INPUT_STATE_PRESSED)
 
 /// @brief Acquires the mouse x position on screen
 /// @return Mouse x

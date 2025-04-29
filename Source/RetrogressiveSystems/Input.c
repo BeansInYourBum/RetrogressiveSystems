@@ -67,11 +67,11 @@ void RGSUpdateInput() {
 #if RGS_OS == RGS_OS_WINDOWS
 		const SHORT input_state = GetAsyncKeyState(state_index);
 		if (g_focused && input_state & 0x8000) {
-			if (!RGS_INPUT_DOWN(g_mkstates[state_index])) g_mkstates[state_index] = RGS_INPUT_STATE_PRESSED;
+			if (!(g_mkstates[state_index] & RGS_INPUT_STATE_DOWN)) g_mkstates[state_index] = RGS_INPUT_STATE_PRESSED;
 			else g_mkstates[state_index] = RGS_INPUT_STATE_DOWN;
 		}
 		else {
-			if (!RGS_INPUT_UP(g_mkstates[state_index])) g_mkstates[state_index] = RGS_INPUT_STATE_RELEASED;
+			if ((g_mkstates[state_index]) & RGS_INPUT_STATE_DOWN) g_mkstates[state_index] = RGS_INPUT_STATE_RELEASED;
 			else g_mkstates[state_index] = RGS_INPUT_STATE_UP;
 		};
 #endif
@@ -140,6 +140,7 @@ RGSInputState RGSKeyboardState(RGSKeyboardKey in_key) {
 	default: return 0;
 	};
 };
+
 
 RGSInputState RGSMouseState(RGSMouseButton in_button) {
 	switch (in_button) {
