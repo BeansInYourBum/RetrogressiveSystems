@@ -94,27 +94,6 @@ typedef enum RGSMouseButton {
 } RGSMouseButton;
 
 
-/// @brief Checks to see if the specified state is up or released
-/// @param _STATE
-/// @return State is up or released?
-#define RGS_INPUT_UP(_STATE) (!((_STATE) & RGS_INPUT_STATE_DOWN))
-
-/// @brief Checks to see if the specified state is released
-/// @param _STATE
-/// @return State is released?
-#define RGS_INPUT_RELEASED(_STATE) ((_STATE) == RGS_INPUT_STATE_RELEASED)
-
-/// @brief Checks to see if the specified state is down or pressed
-/// @param _STATE
-/// @return State is down or pressed?
-#define RGS_INPUT_DOWN(_STATE) ((_STATE) & RGS_INPUT_STATE_DOWN)
-
-/// @brief Checks to see if the specified state is pressed
-/// @param _STATE
-/// @return State is pressed?
-#define RGS_INPUT_PRESSED(_STATE) (((_STATE) & RGS_INPUT_STATE_PRESSED) == RGS_INPUT_STATE_PRESSED)
-
-
 /// @brief Acquires the specified keyboard key state
 /// @param in_key 
 /// @return Input state
