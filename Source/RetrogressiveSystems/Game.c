@@ -89,6 +89,8 @@ int WINAPI WinMain(HINSTANCE in_instance, HINSTANCE in_previous, LPSTR in_comman
 						if (!RGSAudioThreaded()) RGSRenderAudio();
 						if (!RGSGraphicsThreaded()) RGSRenderGraphics();
 					} while (g_running && RGSSafe() && RGSAudioRunning() && RGSGraphicsRunning());
+					RGSStopAudio();
+					RGSStopGraphics();
 					RGSLockAudio();
 					RGSLockGraphics();
 					RGSEnd();

@@ -246,6 +246,13 @@ void RGSReleaseAudio() {
 
 void RGSStartAudio() { g_started = true; };
 
+void RGSStopAudio() {
+	RGSActivateLock(RGS_LOCK_PASS(g_lock));
+	g_running = false;
+	RGSDeactivateLock(RGS_LOCK_PASS(g_lock));
+	RGSWaitForThread(RGS_THREAD_PASS(g_thread));
+};
+
 
 static void RGSRenderAudioSampleActions(float in_offset, size_t in_actions, float* out_left, float* out_right) {
 	for (size_t action_index = 0U; action_index < in_actions; action_index++) {

@@ -793,6 +793,13 @@ void RGSReleaseGraphics() {
 
 void RGSStartGraphics() { g_started = true; };
 
+void RGSStopGraphics() {
+	RGSActivateLock(RGS_LOCK_PASS(g_lock));
+	g_running = false;
+	RGSDeactivateLock(RGS_LOCK_PASS(g_lock));
+	RGSWaitForThread(RGS_THREAD_PASS(g_thread));
+};
+
 void RGSRenderGraphics() {
 #if RGS_OS == RGS_OS_WINDOWS
 	MSG message_info;

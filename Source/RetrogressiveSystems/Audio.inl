@@ -22,6 +22,9 @@ extern void RGSReleaseAudio();
 /// @brief Tells the audio thread to start working
 extern void RGSStartAudio();
 
+/// @brief Tells the audio thread to stop working
+extern void RGSStopAudio();
+
 /// @brief Renders the game's audio
 extern void RGSRenderAudio();
 

@@ -22,6 +22,9 @@ extern void RGSReleaseGraphics();
 /// @brief Tells the graphics thread to start working
 extern void RGSStartGraphics();
 
+/// @brief Tells the graphics thread to stop working
+extern void RGSStopGraphics();
+
 /// @brief Renders the games content and puts it on screen
 extern void RGSRenderGraphics();
 
